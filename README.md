@@ -17,9 +17,9 @@ bootloader
 ======
 Loads the compiled binary into the PIC microcontroller. Make sure the PIC is in debug mode by holding down sw1 when plugging the board in. In order to upload a script:
 
-`python bootloadercmd.py -i [hex-filename] -w `
-# -i imports the hex file into the flash buffer memory 
-# -w erases the program memory of the connected PIC24FJ USB bootloader device, write the contents of the flash memory buffer, and verify the device if verify on write is enabled. 
+`python bootloadercmd.py -i [hex-filename] -w
+-i imports the hex file into the flash buffer memory 
+-w erases the program memory of the connected PIC24FJ USB bootloader device, write the contents of the flash memory buffer, and verify the device if verify on write is enabled. 
 
 
 blink.py
