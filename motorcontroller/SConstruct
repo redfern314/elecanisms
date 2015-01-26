@@ -29,6 +29,8 @@ env.Append(BUILDERS = {'List' : list})
 
 env.Program('motorcontroller', ['motorcontroller.c',
                       '../lib/timer.c',
-                      '../lib/ui.c'])
+                      '../lib/ui.c',
+                      '../lib/pin.c',
+                      '../lib/oc.c'])
 env.Hex('motorcontroller')
 env.List('motorcontroller')

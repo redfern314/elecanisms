@@ -3,11 +3,15 @@
 #include "common.h"
 #include "ui.h"
 #include "timer.h"
+#include "pin.h"
+#include "oc.h"
 
 int16_t main(void) {
     init_clock();
     init_ui();
     init_timer();
+    init_pin();
+    init_oc();
 
     int sw1Mem=0;
     int sw2Mem=0;
@@ -20,6 +24,31 @@ int16_t main(void) {
     led_on(&led1);
     timer_setPeriod(&timer2, LEDtime);
     timer_start(&timer2);
+
+    // Motor output pins setup
+
+    // Set EN high
+    pin_digitalOut(&D[4]);
+    pin_set(&D[4]);
+
+    // Set D2 high
+    pin_digitalOut(&D[2]);
+    pin_set(&D[2]);
+
+    // Set D1 low
+    pin_digitalOut(&D[3]);
+    pin_clear(&D[3]);
+
+    // Config PWM for IN1 (D6), (<11kHz)
+    // pin_digitalOut(&D[6]);
+    oc_pwm(&oc1,&D[6],&timer3,100,30000); // 5kHz, 50% duty cycle
+
+    // Set IN2 low
+    pin_digitalOut(&D[5]);
+    pin_clear(&D[5]);
+
+    // Ignore SLEW (D7)
+    // Ignore INV (D8)
 
     while (1) {
         if (timer_flag(&timer2)) {
