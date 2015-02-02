@@ -13,9 +13,6 @@ def finish( target, source, env ):
       print("\nFlashing hex to device...\n")
       os.system("python ../bootloader/software/bootloadercmd.py -i anglesensor.hex -w")
 
-finish_command = Command( 'finish', [], finish )
-Depends(finish_command, BUILD_TARGETS)
-
 # Specify the build chain and options
 env = Environment(tools = ['gcc', 'gnulink', 'ar', 'zip'], 
                   PIC = '24FJ128GB206', 
@@ -52,5 +49,8 @@ env.Program('anglesensor', ['anglesensor.c',
                       '../lib/pin.c',
                       '../lib/oc.c',
                       '../lib/uart.c'])
-env.Hex('anglesensor')
+hex = env.Hex('anglesensor')
 env.List('anglesensor')
+
+finish_command = Command( 'finish', [], finish )
+Depends(finish_command, hex)
