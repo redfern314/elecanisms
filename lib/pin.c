@@ -78,17 +78,17 @@ void init_pin(void) {
              (uint16_t *)NULL, 2, -1, 8, 23, (uint16_t *)&RPOR11);
     pin_init(&D[13], (uint16_t *)&PORTD, (uint16_t *)&TRISD, 
              (uint16_t *)NULL, 3, -1, 0, 22, (uint16_t *)&RPOR11);
-    pin_init(&A[0], (uint16_t *)&PORTB, (uint16_t *)&TRISB, 
-             (uint16_t *)&ANSB, 0, 0, 0, 0, (uint16_t *)&RPOR0);
-    pin_init(&A[1], (uint16_t *)&PORTB, (uint16_t *)&TRISB, 
-             (uint16_t *)&ANSB, 1, 1, 8, 1, (uint16_t *)&RPOR0);
-    pin_init(&A[2], (uint16_t *)&PORTB, (uint16_t *)&TRISB, 
-             (uint16_t *)&ANSB, 2, 2, 8, 13, (uint16_t *)&RPOR6);
-    pin_init(&A[3], (uint16_t *)&PORTB, (uint16_t *)&TRISB, 
-             (uint16_t *)&ANSB, 3, 3, 0, -1, (uint16_t *)NULL);
-    pin_init(&A[4], (uint16_t *)&PORTB, (uint16_t *)&TRISB, 
-             (uint16_t *)&ANSB, 4, 4, 0, 28, (uint16_t *)&RPOR14);
     pin_init(&A[5], (uint16_t *)&PORTB, (uint16_t *)&TRISB, 
+             (uint16_t *)&ANSB, 0, 0, 0, 0, (uint16_t *)&RPOR0);
+    pin_init(&A[4], (uint16_t *)&PORTB, (uint16_t *)&TRISB, 
+             (uint16_t *)&ANSB, 1, 1, 8, 1, (uint16_t *)&RPOR0);
+    pin_init(&A[3], (uint16_t *)&PORTB, (uint16_t *)&TRISB, 
+             (uint16_t *)&ANSB, 2, 2, 8, 13, (uint16_t *)&RPOR6);
+    pin_init(&A[2], (uint16_t *)&PORTB, (uint16_t *)&TRISB, 
+             (uint16_t *)&ANSB, 3, 3, 0, -1, (uint16_t *)NULL);
+    pin_init(&A[1], (uint16_t *)&PORTB, (uint16_t *)&TRISB, 
+             (uint16_t *)&ANSB, 4, 4, 0, 28, (uint16_t *)&RPOR14);
+    pin_init(&A[0], (uint16_t *)&PORTB, (uint16_t *)&TRISB, 
              (uint16_t *)&ANSB, 5, 5, 0, 18, (uint16_t *)&RPOR9);
     for (i = 0; i<14; i++)
         pin_digitalIn(&D[i]);
