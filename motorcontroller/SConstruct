@@ -1,5 +1,22 @@
 import os
 
+# Schedule the device to be flashed with the compiled code if the user
+#  specified "flash=1" on the command line
+flash = False
+
+for (key,val) in ARGLIST:
+  if key == "flash" and val == "1":
+    flash = True
+
+def finish( target, source, env ):
+    if flash:
+      print("\nFlashing hex to device...\n")
+      os.system("python ../bootloader/software/bootloadercmd.py -i anglesensor.hex -w")
+
+finish_command = Command( 'finish', [], finish )
+Depends(finish_command, BUILD_TARGETS)
+
+# Specify the build chain and options
 env = Environment(tools = ['gcc', 'gnulink', 'ar', 'zip'], 
                   PIC = '24FJ128GB206', 
                   CC = 'xc16-gcc', 
@@ -8,6 +25,7 @@ env = Environment(tools = ['gcc', 'gnulink', 'ar', 'zip'],
                   LINKFLAGS = '-omf=coff -mcpu=$PIC -Wl,--script="app_p24FJ128GB206.gld"', 
                   CPPPATH = '../lib')
 
+# Change compiler path based on detected operating system
 if os.name == "nt":
   print("scons: Windows system detected")
   env.PrependENVPath('PATH', 'C:\\Program Files (x86)\\Microchip\\xc16\\v1.24\\bin')
@@ -18,6 +36,7 @@ else:
   print("scons: OS not recognized - check the SConstruct file.")
   exit()
 
+# Perform the compilation!
 bin2hex = Builder(action = 'xc16-bin2hex $SOURCE -omf=coff',
                   suffix = 'hex', 
                   src_suffix = 'cof')
