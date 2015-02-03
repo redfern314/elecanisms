@@ -5,6 +5,14 @@
 #include "timer.h"
 #include "pin.h"
 #include "oc.h"
+#include "uart.h"
+#include <stdio.h>
+
+float readSensor(_PIN* pin) {
+    uint16_t data = pin_read(pin); // get the ADC reading
+    data = data >> 6; // right-justify the 10-bit ADC reading
+    return data / 939.0; // scale by measured maximum ADC voltage and return
+}
 
 int16_t main(void) {
     init_clock();
@@ -12,18 +20,18 @@ int16_t main(void) {
     init_timer();
     init_pin();
     init_oc();
+    init_uart();
 
-    int sw1Mem=0;
-    int sw2Mem=0;
-    int sw3Mem=0;
-    float LEDtime = 1;
+    led_on(&led3);
 
-    int selectedLED = 0;
-    _LED LEDlist[] = {led1,led2,led3};
+    int8_t motorDirection = 1;
+    uint8_t sw1Mem = 0;
 
-    led_on(&led1);
-    timer_setPeriod(&timer2, LEDtime);
-    timer_start(&timer2);
+    // Sensor data
+    float backEMF = 0;    
+    uint16_t statusFlag = 0;
+    float currentSensor = 0;
+    uint16_t angleSensor = 0;    
 
     // Motor output pins setup
 
@@ -40,8 +48,8 @@ int16_t main(void) {
     pin_clear(&D[3]);
 
     // Config PWM for IN1 (D6), (<11kHz)
-    // pin_digitalOut(&D[6]);
-    oc_pwm(&oc1,&D[6],&timer3,100,30000); // 5kHz, 50% duty cycle
+    pin_digitalOut(&D[6]);
+    // oc_pwm(&oc1,&D[6],&timer3,100,30000); // 5kHz, 50% duty cycle
 
     // Set IN2 low
     pin_digitalOut(&D[5]);
@@ -50,50 +58,75 @@ int16_t main(void) {
     // Ignore SLEW (D7)
     // Ignore INV (D8)
 
+    // Input feedback from motor setup
+
+    // Status flag (D1)
+    pin_digitalIn(&D[1]);
+
+    // Current sensor from 10mOhm resistor, gain * 10 (A0)
+    pin_analogIn(&A[0]);
+
+    // Back EMF from motor (A1)
+    pin_analogIn(&A[1]);
+
+    uint8_t uartbuffer[400] = {0}; // all elements start at 0
+    uint8_t datastr[300] = {0};
+
+    // Set up the UART
+    // UART number, TX pin, RX pin, RTS pin, CTS pin, baud, parity, transmission threshold, 
+    //  stop bits, transmit buffer, transmit buffer size, receive buffer, receive buffer size
+    uart_open(&uart1,&D[12],&D[13],NULL,NULL,9600,'N',1,1,uartbuffer,100,NULL,0);
+
+    uint32_t samples = 0;
+
     while (1) {
-        if (timer_flag(&timer2)) {
-            timer_lower(&timer2);
-            led_toggle(&LEDlist[selectedLED]);
-        }
+        // if (sw_read(&sw1) && !sw1Mem) {
+        //     sw1Mem = 1;
+        //     motorDirection *= -1;
+        //     if (motorDirection == 1) {
+        //         // Clear PWM for IN2 (D5)
+        //         oc_free(&oc1);
 
-        if (sw_read(&sw1) && !sw1Mem) {
-            selectedLED++;
-            selectedLED %= 3;
-            sw1Mem = 1;
+        //         // Config PWM for IN1 (D6)
+        //         oc_pwm(&oc1,&D[6],&timer3,100,30000); // 5kHz, 50% duty cycle
 
-            int i;
-            for(i=0;i<3;i++) {
-                led_off(&LEDlist[i]);
-            }
-        }
+        //         // Set IN2 low
+        //         pin_clear(&D[5]);
+        //     } else {
+        //         // Clear PWM for IN1 (D6)
+        //         oc_free(&oc1);
 
-        if(!sw_read(&sw1)) {
-            sw1Mem=0;
-        }
+        //         // Config PWM for IN2 (D5)
+        //         oc_pwm(&oc1,&D[6],&timer3,100,30000); // 5kHz, 50% duty cycle
 
-        if (sw_read(&sw2) && !sw2Mem) {
-            led_write(&led2, !sw_read(&sw2));
-            sw2Mem=1;
-            LEDtime*=2;
-            timer_setPeriod(&timer2, LEDtime);
-            timer_start(&timer2);
-        }
+        //         // Set IN1 low
+        //         pin_clear(&D[6]);
+        //     }
+        // }
 
-        if(!sw_read(&sw2)) {
-            sw2Mem=0;
-        }
+        // if(!sw_read(&sw1)) {
+        //     sw1Mem=0;
+        // }
 
-        if (sw_read(&sw3) && !sw3Mem) {
-            led_write(&led3, !sw_read(&sw3));
-            sw3Mem=1;
-            LEDtime/=2;
-            timer_setPeriod(&timer2, LEDtime);
-            timer_start(&timer2);
-        }
+        // read all of our sensors and output to UART
+        statusFlag = pin_read(&D[1]);
+        currentSensor += readSensor(&A[0]);
+        backEMF += readSensor(&A[1]);
+        // (get angle reading)
+        samples++;
 
+        if (samples > 5000) {
+            backEMF /= samples;
+            currentSensor /= samples;
 
-        if(!sw_read(&sw3)) {
-            sw3Mem=0;
+            sprintf(datastr,"%f\r\n",readSensor(&A[0]));
+            // sprintf(datastr,"Status: %i\r\nBack EMF: %f\r\nCurrent: %f\r\n",statusFlag,backEMF,currentSensor);
+            uart_puts(&uart1,datastr);
+
+            samples = 0;
+            statusFlag = 0;
+            currentSensor = 0;
+            backEMF = 0;
         }
     }
 }

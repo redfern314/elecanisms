@@ -6,6 +6,7 @@
 #include "pin.h"
 #include "oc.h"
 #include "uart.h"
+#include <stdio.h>
 
 int16_t main(void) {
     init_clock();
@@ -27,23 +28,35 @@ int16_t main(void) {
     //  stop bits, transmit buffer, transmit buffer size, receive buffer, receive buffer size
     uart_open(&uart1,&D[12],&D[13],NULL,NULL,9600,'N',1,1,uartbuffer,100,NULL,0);
 
-    uint16_t data = 0;
-    uint8_t datastr[3] = {0};
-    datastr[2] = '\0'; // null terminate it
+    uint16_t rawdata = 0;
+    float datareading = 0;
+    uint8_t datastr[16] = {0};
+
+    uint32_t pause = 0;
 
     while (1) {
-        if (sw_read(&sw1) && !sw1Mem) {
-            sw1Mem = 1;
-            // led_on(&led3);
-            // send something over UART
-            data = pin_read(&A[5]);
-            datastr[0] = (data & 0xFF00) >> 8;
-            datastr[1] = (data & 0x00FF);
+        if (pause == 0) {
+            // send data over UART
+            rawdata = pin_read(&A[5]) >> 6;
+            datareading = rawdata / 939.0; // scale by measured maximum ADC voltage
+
+            // calibrate to the angle sensor's output and convert to 
+            //  angle (0-180 degrees)
+            datareading -= .055;
+            datareading /= .89;
+            datareading *= 180;
+
+            sprintf(datastr,"%.4f\r\n",datareading);
             uart_puts(&uart1,datastr);
+            pause = 200000;
         }
 
         if(!sw_read(&sw1)) {
             sw1Mem=0;
+        }
+
+        if (pause) {
+            pause--;
         }
     }
 }
