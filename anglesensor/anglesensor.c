@@ -39,7 +39,7 @@ int16_t main(void) {
             datareading *= 180;
 
             printf("%.4f\r\n",datareading);
-            pause = 200000;
+            pause = 2000;
         }
 
         if(!sw_read(&sw1)) {

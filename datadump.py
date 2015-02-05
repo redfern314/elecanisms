@@ -4,16 +4,22 @@ import matplotlib.pyplot as plt
 
 data = []
 
-s = serial.Serial('/dev/ttyUSB0', 19200, timeout=0)
+s = serial.Serial('/dev/ttyUSB0', 19200, timeout=None)
 time.sleep(.5)
 s.flushInput()
 
 ans = raw_input("Enter to collect all waiting lines of data, \"quit\" to exit and display graph:\n")
 while ans != "quit":
     collect = s.readlines()
-    print collect
-    floatarray = [float(a) for a in collect]
-    data += floatarray
+
+    for datapoint in collect:
+        try:
+            floatdata = float(datapoint)
+            if floatdata > 0 and floatdata < 180:
+                data.append(floatdata)
+        except Exception, e:
+            pass # the data point was invalid; continue anyways
+
     print data
 
     ans = raw_input("Enter to collect all waiting lines of data, \"quit\" to exit and display graph:\n")
