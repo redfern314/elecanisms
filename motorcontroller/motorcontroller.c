@@ -69,14 +69,6 @@ int16_t main(void) {
     // Back EMF from motor (A1)
     pin_analogIn(&A[1]);
 
-    uint8_t uartbuffer[400] = {0}; // all elements start at 0
-    uint8_t datastr[300] = {0};
-
-    // Set up the UART
-    // UART number, TX pin, RX pin, RTS pin, CTS pin, baud, parity, transmission threshold, 
-    //  stop bits, transmit buffer, transmit buffer size, receive buffer, receive buffer size
-    uart_open(&uart1,&D[12],&D[13],NULL,NULL,9600,'N',1,1,uartbuffer,100,NULL,0);
-
     uint32_t samples = 0;
 
     while (1) {
@@ -119,9 +111,8 @@ int16_t main(void) {
             backEMF /= samples;
             currentSensor /= samples;
 
-            sprintf(datastr,"%f\r\n",readSensor(&A[0]));
-            // sprintf(datastr,"Status: %i\r\nBack EMF: %f\r\nCurrent: %f\r\n",statusFlag,backEMF,currentSensor);
-            uart_puts(&uart1,datastr);
+            printf("%f\r\n",readSensor(&A[0]));
+            // printf("Status: %i\r\nBack EMF: %f\r\nCurrent: %f\r\n",statusFlag,backEMF,currentSensor);
 
             samples = 0;
             statusFlag = 0;

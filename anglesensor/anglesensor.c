@@ -21,16 +21,8 @@ int16_t main(void) {
 
     uint8_t sw1Mem = 0;
 
-    uint8_t uartbuffer[100] = {0}; // all elements start at 0
-
-    // Set up the UART
-    // UART number, TX pin, RX pin, RTS pin, CTS pin, baud, parity, transmission threshold, 
-    //  stop bits, transmit buffer, transmit buffer size, receive buffer, receive buffer size
-    uart_open(&uart1,&D[12],&D[13],NULL,NULL,9600,'N',1,1,uartbuffer,100,NULL,0);
-
     uint16_t rawdata = 0;
     float datareading = 0;
-    uint8_t datastr[16] = {0};
 
     uint32_t pause = 0;
 
@@ -46,8 +38,7 @@ int16_t main(void) {
             datareading /= .89;
             datareading *= 180;
 
-            sprintf(datastr,"%.4f\r\n",datareading);
-            uart_puts(&uart1,datastr);
+            printf("%.4f\r\n",datareading);
             pause = 200000;
         }
 

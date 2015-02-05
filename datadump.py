@@ -1,16 +1,22 @@
 import serial
+import time
 import matplotlib.pyplot as plt
 
 data = []
 
-s = serial.Serial('/dev/ttyUSB0', 9600, timeout=0)
+s = serial.Serial('/dev/ttyUSB0', 19200, timeout=0)
+time.sleep(.5)
+s.flushInput()
 
-ans = input("Enter to collect up to 100 bytes of data, \"quit\" to exit and display graph:")
+ans = raw_input("Enter to collect all waiting lines of data, \"quit\" to exit and display graph:\n")
 while ans != "quit":
-    collect = s.read(100)
+    collect = s.readlines()
     print collect
-    # TODO: append collect to data and convert to proper types
-    ans = input("Enter to collect up to 100 bytes of data, \"quit\" to exit and display graph:")
+    floatarray = [float(a) for a in collect]
+    data += floatarray
+    print data
+
+    ans = raw_input("Enter to collect all waiting lines of data, \"quit\" to exit and display graph:\n")
 
 s.close()
 
