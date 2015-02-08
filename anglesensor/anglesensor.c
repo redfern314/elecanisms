@@ -34,12 +34,12 @@ int16_t main(void) {
 
             // calibrate to the angle sensor's output and convert to 
             //  angle (0-180 degrees)
-            datareading -= .055;
-            datareading /= .89;
+            datareading -= .052;
+            datareading /= .84;
             datareading *= 180;
 
             printf("%.4f\r\n",datareading);
-            pause = 2000;
+            pause = 200;
         }
 
         if(!sw_read(&sw1)) {
