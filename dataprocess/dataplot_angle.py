@@ -11,8 +11,8 @@ with open('anglecalraw.csv', 'r') as csvfile:
     samples = range(len(data))
 
     plt.plot(samples,data)
-    plt.xlabel("Time (s)")
-    plt.ylabel("Motor Angular Speed (revolutions per second)")
-    plt.title("Angle Calibration Test")
+    plt.xlabel("Sample Number",fontsize=18)
+    plt.ylabel("Angle of Magnet (degrees)",fontsize=18)
+    plt.title("Angle Calibration Test",fontsize=24)
     plt.grid(True)
     plt.show()

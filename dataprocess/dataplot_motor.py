@@ -19,8 +19,8 @@ with open('processed.csv', 'r') as csvfile:
     data = [1/(point*2*timescale) for point in data]
 
     plt.plot(samples,data)
-    plt.xlabel("Time (s)")
-    plt.ylabel("Motor Angular Speed (revolutions per second)")
-    plt.title("Motor Spin-Down Test")
+    plt.xlabel("Time (s)",fontsize=18)
+    plt.ylabel("Motor Speed (revolutions per second)",fontsize=18)
+    plt.title("Motor Spin-Down Test",fontsize=24)
     plt.grid(True)
     plt.show()
