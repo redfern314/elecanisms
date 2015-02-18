@@ -1,3 +1,10 @@
+
+// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// ------------------------- PREPROCESSOR DIRECTIVES -------------------------
+// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+
 #include <p24FJ128GB206.h>
 #include "config.h"
 #include "common.h"
@@ -15,6 +22,22 @@
 #define DUTY_CYCLE_MIN          15000
 #define FORWARD_PWM_CONST       1.780850
 #define BACKWARD_PWM_CONST      1.815800
+
+// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// --------------------------- VARIABLE DEFINITIONS --------------------------
+// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+
+typedef enum {
+    MODE_NONE,
+    MODE_SPRING,
+    MODE_DAMP,
+    MODE_TEXTURE,
+    MODE_WALL
+} mode_t;
+
+mode_t mode = MODE_NONE;
 
 // Position tracking variables
 int updatedPos = 0;     // keeps track of the latest updated value of the MR sensor reading
@@ -45,29 +68,12 @@ uint16_t samples = 0;
 
 uint16_t prevDutyCycle = 0;
 int8_t prevMotorDirection = 1;
-// resets the motor's duty cycle and direction
-void setMotor(void) {
-    printf("%u\t%i\t%i\r\n",motorDutyCycle,motorDirection,updatedPos);
-    if (motorDirection != prevMotorDirection || motorDutyCycle != prevDutyCycle) {
-        oc_free(&oc1);
 
-        if (motorDirection == 1) {
-            // Config PWM for IN1 (D6)
-            oc_pwm(&oc1,&D[6],&timer3,PWM_FREQ,motorDutyCycle);
-
-            // Set IN2 (D5) low
-            pin_clear(&D[5]);
-        } else {
-            // Config PWM for IN2 (D5)
-            oc_pwm(&oc1,&D[5],&timer3,PWM_FREQ,motorDutyCycle);
-
-            // Set IN1 (D6) low
-            pin_clear(&D[6]);
-        }
-        prevDutyCycle = motorDutyCycle;
-        prevMotorDirection = motorDirection;
-    }
-}
+// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// ---------------------------- SENSING FUNCTIONS ----------------------------
+// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
 
 float readSensor(_PIN* pin) {
     uint16_t data = pin_read(pin); // get the ADC reading
@@ -110,29 +116,6 @@ void readFlips() {
     // printf("%i\r\n",updatedPos);
 }
 
-// called on an interrupt to change the direction and duty cycle of the motor if necessary
-void changeMotor() {
-    // int x = 1;
-    // int y = 1;
-    // float currentDesired = updatedPos*x;
-    // if (currentDesired > motorCurrent) {
-    //     motorDutyCycle = currentDesired*y + DUTY_CYCLE_MIN;
-    // } else {
-    //     motorDutyCycle = motorCurrent*y + DUTY_CYCLE_MIN;
-    // }
-
-    if (updatedPos < -100) {
-        motorDutyCycle = DUTY_CYCLE_MIN+updatedPos*-4;
-        motorDirection = 1;
-    } else if (updatedPos > 100) {
-        motorDutyCycle = DUTY_CYCLE_MIN+updatedPos*4;
-        motorDirection = -1;
-    } else {
-        motorDutyCycle = 0;
-    }
-    setMotor();
-}
-
 // Current with no load and no motor connected (and full forward PWM): 1.786060
 // Current with no load and no motor connected (and no PWM): 1.809630
 // Current with no load and full forward PWM: 1.780850
@@ -172,6 +155,85 @@ void currentSample() {
         // backEMF = 0;
     }
 }
+
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// ----------------------------- ACTING FUNCTIONS -----------------------------
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+// resets the motor's duty cycle and direction
+void setMotor(void) {
+    printf("%u\t%i\t%i\r\n",motorDutyCycle,motorDirection,updatedPos);
+    if (motorDirection != prevMotorDirection || motorDutyCycle != prevDutyCycle) {
+        oc_free(&oc1);
+
+        if (motorDirection == 1) {
+            // Config PWM for IN1 (D6)
+            oc_pwm(&oc1,&D[6],&timer3,PWM_FREQ,motorDutyCycle);
+
+            // Set IN2 (D5) low
+            pin_clear(&D[5]);
+        } else {
+            // Config PWM for IN2 (D5)
+            oc_pwm(&oc1,&D[5],&timer3,PWM_FREQ,motorDutyCycle);
+
+            // Set IN1 (D6) low
+            pin_clear(&D[6]);
+        }
+        prevDutyCycle = motorDutyCycle;
+        prevMotorDirection = motorDirection;
+    }
+}
+
+// called on an interrupt to change the direction and duty cycle of the motor if necessary
+void changeMotor() {
+    switch (mode) {
+        case MODE_NONE: {
+            motorDutyCycle = 0;
+            break;
+        }
+        case MODE_SPRING: {
+            // TODO: use the following code to modify the duty cycle based on current
+            // int x = 1;
+            // int y = 1;
+            // float currentDesired = updatedPos*x;
+            // if (currentDesired > motorCurrent) {
+            //     motorDutyCycle = currentDesired*y + DUTY_CYCLE_MIN;
+            // } else {
+            //     motorDutyCycle = motorCurrent*y + DUTY_CYCLE_MIN;
+            // }
+
+            if (updatedPos < -100) {
+                motorDutyCycle = DUTY_CYCLE_MIN+updatedPos*-4;
+                motorDirection = 1;
+            } else if (updatedPos > 100) {
+                motorDutyCycle = DUTY_CYCLE_MIN+updatedPos*4;
+                motorDirection = -1;
+            } else {
+                motorDutyCycle = 0;
+            }
+            break;
+        }
+        case MODE_DAMP: {
+            break;
+        }
+        case MODE_TEXTURE: {
+            break;
+        }
+        case MODE_WALL: {
+            break;
+        }
+    }
+
+    setMotor();
+}
+
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// -------------------------------- MAIN LOOP ---------------------------------
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 
 int16_t main(void) {
     init_clock();
@@ -224,6 +286,8 @@ int16_t main(void) {
     timer_every(&timer1,0.0005,&readFlips);
     timer_every(&timer2,0.01,&changeMotor);
     // timer_every(&timer4,0.0001,&currentSample);
+
+    mode = MODE_SPRING; // sets which type of feedback we're using
 
     while (1) {
         if (sw_read(&sw1) && !sw1Mem) {
