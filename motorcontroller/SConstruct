@@ -54,3 +54,4 @@ lst = env.List('motorcontroller')
 
 finish_command = Command( 'finish', [], finish )
 Depends(finish_command, lst)
+Depends(finish_command, hex)
