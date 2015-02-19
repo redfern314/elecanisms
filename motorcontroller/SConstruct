@@ -48,7 +48,9 @@ env.Program('motorcontroller', ['motorcontroller.c',
                       '../lib/ui.c',
                       '../lib/pin.c',
                       '../lib/oc.c',
-                      '../lib/uart.c'])
+                      '../lib/uart.c',
+                      '../lib/usb.c',
+                      '../lib/descriptors.c'])
 hex = env.Hex('motorcontroller')
 lst = env.List('motorcontroller')
 

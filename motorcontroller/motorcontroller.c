@@ -13,15 +13,17 @@
 #include "pin.h"
 #include "oc.h"
 #include "uart.h"
+#include "usb.h"
 #include <stdio.h>
 
 #define true                    1
 #define false                   0
 #define PWM_FREQ                5000     // 5000Hz
-// #define DUTY_CYCLE_MIN          22000    // overcome static friction with the power of torque
-#define DUTY_CYCLE_MIN          15000
+#define DUTY_CYCLE_MIN          15000    // overcome static friction with the power of torque (used to be 22000)
 #define FORWARD_PWM_CONST       1.780850
 #define BACKWARD_PWM_CONST      1.815800
+
+#define SET_MODE                0   // Vendor request that sets the feedback mode
 
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
@@ -231,6 +233,41 @@ void changeMotor() {
 
 // ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
+// ------------------------- COMMUNICATION FUNCTIONS --------------------------
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+void VendorRequests(void) {
+    WORD temp;
+
+    switch (USB_setup.bRequest) {
+        case SET_MODE:
+            mode = (mode_t)USB_setup.wValue.w;
+            // disregard USB_setup.wIndex.w, we're only sending one value
+            BD[EP0IN].bytecount = 0;    // set EP0 IN byte count to 0 
+            BD[EP0IN].status = 0xC8;    // send packet as DATA1, set UOWN bit
+            break;
+        default:
+            USB_error_flags |= 0x01;    // set Request Error Flag
+    }
+}
+
+void VendorRequestsIn(void) {
+    switch (USB_request.setup.bRequest) {
+        default:
+            USB_error_flags |= 0x01;                    // set Request Error Flag
+    }
+}
+
+void VendorRequestsOut(void) {
+    switch (USB_request.setup.bRequest) {
+        default:
+            USB_error_flags |= 0x01;                    // set Request Error Flag
+    }
+}
+
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 // -------------------------------- MAIN LOOP ---------------------------------
 // ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
@@ -283,21 +320,18 @@ int16_t main(void) {
     // Back EMF from motor (A1)
     pin_analogIn(&A[1]);
 
+    mode = MODE_SPRING; // sets which type of feedback we're using
+
+    InitUSB();                              // initialize the USB registers and serial interface engine
+    while (USB_USWSTAT!=CONFIG_STATE) {     // while the peripheral is not configured...
+        ServiceUSB();                       // ...service USB requests
+    }
+
     timer_every(&timer1,0.0005,&readFlips);
     timer_every(&timer2,0.01,&changeMotor);
     // timer_every(&timer4,0.0001,&currentSample);
 
-    mode = MODE_SPRING; // sets which type of feedback we're using
-
     while (1) {
-        if (sw_read(&sw1) && !sw1Mem) {
-            sw1Mem = 1;
-            motorDirection *= -1;
-            // setMotor();
-        }
-
-        if(!sw_read(&sw1)) {
-            sw1Mem=0;
-        }
+        ServiceUSB();                       // service any pending USB requests and wait for interrupts
     }
 }
