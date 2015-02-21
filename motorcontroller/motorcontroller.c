@@ -22,6 +22,8 @@
 #define DUTY_CYCLE_MIN          15000    // overcome static friction with the power of torque (used to be 22000)
 #define FORWARD_PWM_CONST       1.780850
 #define BACKWARD_PWM_CONST      1.815800
+#define MIDDLE_PWM_CONST        1.810000
+
 
 #define SET_MODE                0   // Vendor request that sets the feedback mode
 
@@ -43,6 +45,7 @@ mode_t mode = MODE_NONE;
 
 // Position tracking variables
 int updatedPos = 0;     // keeps track of the latest updated value of the MR sensor reading
+int positionDiff = 0;    //Calculates the change in position per change motor timer 
 int rawPos = 0;         // current raw reading from MR sensor
 int lastRawPos = 0;     // last raw reading from MR sensor
 int lastLastRawPos = 0; // last last raw reading from MR sensor
@@ -56,6 +59,7 @@ const int flipThresh = 500;  // threshold to determine whether or not a flip ove
 int flipped = false;
 
 float lastAngle = 0;
+float test = 0;
 
 uint16_t motorDutyCycle = 0; // duty cycle (0-65535)
 int8_t motorDirection = 1; // 1 is forwards; -1 is reverse
@@ -139,16 +143,18 @@ void currentSample() {
         // average = average*(numaverage-1)+currentSensor;
         // average /= numaverage;
 
-        if (motorDirection == 1) {
-            motorCurrent = currentSensor - FORWARD_PWM_CONST;
-        } else {
-            motorCurrent = currentSensor - BACKWARD_PWM_CONST;
-        }
+        // if (motorDirection == 1) {
+        //     motorCurrent = currentSensor*3.3 - FORWARD_PWM_CONST;
+        // } else {
+        //     motorCurrent = currentSensor*3.3 - BACKWARD_PWM_CONST;
+        // }
+        motorCurrent = currentSensor * 3.3 - MIDDLE_PWM_CONST;
         if (motorCurrent < 0) {
             motorCurrent *= -1;
         }
 
-        printf("%f\r\n",currentSensor*3.3);
+        // printf("%f\r\n",currentSensor*3.3);
+        // printf("%f\r\n",motorCurrent);
         // printf("Status: %i\r\nBack EMF: %f\r\nCurrent: %f\r\n",statusFlag,backEMF,currentSensor);
 
         samples = 0;
@@ -166,7 +172,7 @@ void currentSample() {
 
 // resets the motor's duty cycle and direction
 void setMotor(void) {
-    printf("%u\t%i\t%i\r\n",motorDutyCycle,motorDirection,updatedPos);
+    // printf("%u\t%i\t%i\r\n",motorDutyCycle,motorDirection,updatedPos);
     if (motorDirection != prevMotorDirection || motorDutyCycle != prevDutyCycle) {
         oc_free(&oc1);
 
@@ -196,16 +202,6 @@ void changeMotor() {
             break;
         }
         case MODE_SPRING: {
-            // TODO: use the following code to modify the duty cycle based on current
-            // int x = 1;
-            // int y = 1;
-            // float currentDesired = updatedPos*x;
-            // if (currentDesired > motorCurrent) {
-            //     motorDutyCycle = currentDesired*y + DUTY_CYCLE_MIN;
-            // } else {
-            //     motorDutyCycle = motorCurrent*y + DUTY_CYCLE_MIN;
-            // }
-
             if (updatedPos < -100) {
                 motorDutyCycle = DUTY_CYCLE_MIN+updatedPos*-4;
                 motorDirection = 1;
@@ -215,15 +211,55 @@ void changeMotor() {
             } else {
                 motorDutyCycle = 0;
             }
+            printf("%u\t",motorDutyCycle);
+
+             // TODO: use the following code to modify the duty cycle based on current
+            float x = 40000;
+            float y = 100000;
+
+            //COMMENTED OUT, increase torque based on distance, already did above
+            // float currentDesired = updatedPos*motorDirection*-1/x;
+            // if (currentDesired > motorCurrent) {
+            //     motorDutyCycle += (int)(currentDesired*y);
+            // } else {
+            motorDutyCycle += motorCurrent*y;
+            // }
+            printf("%u\r\n",motorDutyCycle);
             break;
         }
         case MODE_DAMP: {
+            printf("%i\t\r\n",positionDiff-updatedPos);
+            int dampingFactor = 100; 
+            if(positionDiff-updatedPos>10){
+                motorDutyCycle = DUTY_CYCLE_MIN+(positionDiff-updatedPos)*dampingFactor;
+                motorDirection=1;    
+            }
+            else if(positionDiff-updatedPos<-10){
+                motorDutyCycle = DUTY_CYCLE_MIN+(positionDiff-updatedPos)*dampingFactor;
+                motorDirection=-1;    
+            }
+            else{
+                motorDutyCycle = 0;
+            }
+            positionDiff=updatedPos;
             break;
         }
         case MODE_TEXTURE: {
             break;
         }
         case MODE_WALL: {
+            printf("%i\r\n",updatedPos);
+            if(updatedPos>1000){
+                motorDutyCycle = 40000;
+                motorDirection=-1;
+            }
+            else if (updatedPos<-1000){
+                motorDutyCycle = 40000;
+                motorDirection=1;
+            }
+            else{
+                motorDutyCycle = 0;
+            }
             break;
         }
     }
@@ -320,16 +356,17 @@ int16_t main(void) {
     // Back EMF from motor (A1)
     pin_analogIn(&A[1]);
 
-    mode = MODE_SPRING; // sets which type of feedback we're using
+    mode = MODE_WALL; // sets which type of feedback we're using
 
     InitUSB();                              // initialize the USB registers and serial interface engine
-    while (USB_USWSTAT!=CONFIG_STATE) {     // while the peripheral is not configured...
-        ServiceUSB();                       // ...service USB requests
-    }
+    // while (USB_USWSTAT!=CONFIG_STATE) {     // while the peripheral is not configured...
+    //     printf("%u\t%i\t%i\r\n",motorDutyCycle,motorDirection,updatedPos);
+    //     ServiceUSB();                       // ...service USB requests
+    // }
 
     timer_every(&timer1,0.0005,&readFlips);
     timer_every(&timer2,0.01,&changeMotor);
-    // timer_every(&timer4,0.0001,&currentSample);
+    timer_every(&timer4,0.0001,&currentSample);
 
     while (1) {
         ServiceUSB();                       // service any pending USB requests and wait for interrupts
