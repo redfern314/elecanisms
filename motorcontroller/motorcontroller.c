@@ -245,6 +245,28 @@ void changeMotor() {
             break;
         }
         case MODE_TEXTURE: {
+            int texturePos = updatedPos%1000;
+            if (updatedPos<0)
+            {
+                updatedPos*=-1;
+            }
+            if (texturePos<0)
+            {
+                texturePos*=-1;
+            }
+            printf("%i\r\n",updatedPos);
+            if (texturePos<100 || texturePos>900)
+            {
+                motorDutyCycle=0;
+            }
+            else if (texturePos>500) {
+                motorDutyCycle = DUTY_CYCLE_MIN+updatedPos*2;
+                motorDirection = 1;
+            }
+            else {
+                motorDutyCycle = DUTY_CYCLE_MIN+updatedPos*2;
+                motorDirection = -1;
+            }
             break;
         }
         case MODE_WALL: {
@@ -356,7 +378,7 @@ int16_t main(void) {
     // Back EMF from motor (A1)
     pin_analogIn(&A[1]);
 
-    mode = MODE_WALL; // sets which type of feedback we're using
+    mode = MODE_TEXTURE; // sets which type of feedback we're using
 
     InitUSB();                              // initialize the USB registers and serial interface engine
     // while (USB_USWSTAT!=CONFIG_STATE) {     // while the peripheral is not configured...
