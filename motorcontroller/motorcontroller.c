@@ -26,6 +26,7 @@
 
 
 #define SET_MODE                0   // Vendor request that sets the feedback mode
+#define SET_TEXTURE             1   // Vendor request that sets the texture frequency
 
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
@@ -41,7 +42,9 @@ typedef enum {
     MODE_WALL
 } mode_t;
 
+// Variables that can be set via USB
 mode_t mode = MODE_NONE;
+int textureThreshold = 1000;
 
 // Position tracking variables
 int updatedPos = 0;     // keeps track of the latest updated value of the MR sensor reading
@@ -224,11 +227,11 @@ void changeMotor() {
             // } else {
             motorDutyCycle += motorCurrent*y;
             // }
-            printf("%u\r\n",motorDutyCycle);
+            // printf("%u\r\n",motorDutyCycle);
             break;
         }
         case MODE_DAMP: {
-            printf("%i\t\r\n",positionDiff-updatedPos);
+            // printf("%i\t\r\n",positionDiff-updatedPos);
             int dampingFactor = 100; 
             if(positionDiff-updatedPos>10){
                 motorDutyCycle = DUTY_CYCLE_MIN+(positionDiff-updatedPos)*dampingFactor;
@@ -245,7 +248,7 @@ void changeMotor() {
             break;
         }
         case MODE_TEXTURE: {
-            int texturePos = updatedPos%1000;
+            int texturePos = updatedPos % textureThreshold;
             if (updatedPos<0)
             {
                 updatedPos*=-1;
@@ -254,23 +257,23 @@ void changeMotor() {
             {
                 texturePos*=-1;
             }
-            printf("%i\r\n",updatedPos);
-            if (texturePos<100 || texturePos>900)
+            // printf("%i\r\n",updatedPos);
+            if (texturePos < 100 || texturePos > (textureThreshold - 100))
             {
                 motorDutyCycle=0;
             }
-            else if (texturePos>500) {
-                motorDutyCycle = DUTY_CYCLE_MIN+updatedPos*2;
+            else if (texturePos > (textureThreshold / 2.0)) {
+                motorDutyCycle = DUTY_CYCLE_MIN;
                 motorDirection = 1;
             }
             else {
-                motorDutyCycle = DUTY_CYCLE_MIN+updatedPos*2;
+                motorDutyCycle = DUTY_CYCLE_MIN;
                 motorDirection = -1;
             }
             break;
         }
         case MODE_WALL: {
-            printf("%i\r\n",updatedPos);
+            // printf("%i\r\n",updatedPos);
             if(updatedPos>1000){
                 motorDutyCycle = 40000;
                 motorDirection=-1;
@@ -301,6 +304,12 @@ void VendorRequests(void) {
     switch (USB_setup.bRequest) {
         case SET_MODE:
             mode = (mode_t)USB_setup.wValue.w;
+            // disregard USB_setup.wIndex.w, we're only sending one value
+            BD[EP0IN].bytecount = 0;    // set EP0 IN byte count to 0 
+            BD[EP0IN].status = 0xC8;    // send packet as DATA1, set UOWN bit
+            break;
+        case SET_TEXTURE:
+            textureThreshold = (int)USB_setup.wValue.w;
             // disregard USB_setup.wIndex.w, we're only sending one value
             BD[EP0IN].bytecount = 0;    // set EP0 IN byte count to 0 
             BD[EP0IN].status = 0xC8;    // send packet as DATA1, set UOWN bit
@@ -381,14 +390,14 @@ int16_t main(void) {
     mode = MODE_TEXTURE; // sets which type of feedback we're using
 
     InitUSB();                              // initialize the USB registers and serial interface engine
-    // while (USB_USWSTAT!=CONFIG_STATE) {     // while the peripheral is not configured...
-    //     printf("%u\t%i\t%i\r\n",motorDutyCycle,motorDirection,updatedPos);
-    //     ServiceUSB();                       // ...service USB requests
-    // }
+    while (USB_USWSTAT!=CONFIG_STATE) {     // while the peripheral is not configured...
+        // printf("%u\t%i\t%i\r\n",motorDutyCycle,motorDirection,updatedPos);
+        ServiceUSB();                       // ...service USB requests
+    }
 
     timer_every(&timer1,0.0005,&readFlips);
     timer_every(&timer2,0.01,&changeMotor);
-    timer_every(&timer4,0.0001,&currentSample);
+    timer_every(&timer4,0.0005,&currentSample);
 
     while (1) {
         ServiceUSB();                       // service any pending USB requests and wait for interrupts

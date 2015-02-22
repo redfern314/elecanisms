@@ -9,6 +9,7 @@ class JoystickUSB:
 
     def __init__(self):
         self.SET_MODE = 0
+        self.SET_TEXTURE = 1
 
         self.MODE_NONE = 0
         self.MODE_SPRING = 1
@@ -29,6 +30,12 @@ class JoystickUSB:
             self.dev.ctrl_transfer(0x40, self.SET_MODE, int(mode), int(0))
         except usb.core.USBError:
             print "Could not send SET_MODE vendor request."
+
+    def set_texture(self, texture):
+        try:
+            self.dev.ctrl_transfer(0x40, self.SET_TEXTURE, int(texture), int(0))
+        except usb.core.USBError:
+            print "Could not send SET_TEXTURE vendor request."
 
 qt_app = QApplication(sys.argv)
  
@@ -71,6 +78,43 @@ class JoystickGUI(QWidget):
  
         # Add the button box to the bottom of the main VBox layout
         self.layout.addLayout(self.button_box)
+        self.layout.addSpacing(20)
+
+        # Add a slider for adjusting the spring parameter
+        self.springSliderLabel = QLabel("Spring Parameter")
+        self.layout.addWidget(self.springSliderLabel)
+        self.springSlider = QSlider(Qt.Horizontal, self)
+        self.springSlider.setMinimum(0)
+        self.springSlider.setMaximum(100)
+        self.layout.addWidget(self.springSlider)
+        self.layout.addSpacing(20)
+
+        # Add a slider for adjusting the damper parameter
+        self.damperSliderLabel = QLabel("Damper Parameter")
+        self.layout.addWidget(self.damperSliderLabel)
+        self.damperSlider = QSlider(Qt.Horizontal, self)
+        self.damperSlider.setMinimum(0)
+        self.damperSlider.setMaximum(100)
+        self.layout.addWidget(self.damperSlider)
+        self.layout.addSpacing(20)
+
+        # Add a slider for adjusting the texture spacing
+        self.textureSliderLabel = QLabel("Spacing Between Texture Bumps (250-2000)")
+        self.layout.addWidget(self.textureSliderLabel)
+        self.textureSlider = QSlider(Qt.Horizontal, self)
+        self.textureSlider.setMinimum(250)
+        self.textureSlider.setMaximum(2000)
+        self.layout.addWidget(self.textureSlider)
+        self.layout.addSpacing(20)
+
+        # Add a slider for adjusting the distance to the wall
+        self.wallSliderLabel = QLabel("Distance to Virtual Wall (100-10000)")
+        self.layout.addWidget(self.wallSliderLabel)
+        self.wallSlider = QSlider(Qt.Horizontal, self)
+        self.wallSlider.setMinimum(100)
+        self.wallSlider.setMaximum(10000)
+        self.layout.addWidget(self.wallSlider)
+        self.layout.addSpacing(20)
  
         # Set the VBox layout as the window's main layout
         self.setLayout(self.layout)
@@ -82,15 +126,15 @@ class JoystickGUI(QWidget):
         clicked = self.sender().text()
         mode = -1
         if clicked == "None":
-            dev.set_mode(dev.MODE_NONE)
+            self.dev.set_mode(self.dev.MODE_NONE)
         elif clicked == "Spring":
-            dev.set_mode(dev.MODE_SPRING)
+            self.dev.set_mode(self.dev.MODE_SPRING)
         elif clicked == "Damper":
-            dev.set_mode(dev.MODE_DAMP)
+            self.dev.set_mode(self.dev.MODE_DAMP)
         elif clicked == "Texture":
-            dev.set_mode(dev.MODE_TEXTURE)
+            self.dev.set_mode(self.dev.MODE_TEXTURE)
         elif clicked == "Wall":
-            dev.set_mode(dev.MODE_WALL)
+            self.dev.set_mode(self.dev.MODE_WALL)
 
     def run(self):
         # Show the form
