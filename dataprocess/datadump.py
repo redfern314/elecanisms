@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 data = []
 
-s = serial.Serial('/dev/ttyUSB1', 19200, timeout=0)
+s = serial.Serial('/dev/ttyUSB0', 19200, timeout=0)
 time.sleep(.5)
 s.flushInput()
 
@@ -22,7 +22,7 @@ while ans != "exit":
         plt.show()
 
     elif ans == "save":
-        with open('dump.csv', 'wb') as csvfile:
+        with open('texturedata.csv', 'wb') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(data)
 
@@ -32,9 +32,9 @@ while ans != "exit":
         for datapoint in collect:
             try:
                 # data.append(int(datapoint))
-                floatdata = float(datapoint)
-                if floatdata > 0 and floatdata < 180:
-                    data.append(floatdata)
+                # floatdata = float(datapoint)
+                # if floatdata > 0 and floatdata < 180:
+                data.append(int(datapoint))
             except Exception, e:
                 pass # the data point was invalid; continue anyways
 
