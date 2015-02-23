@@ -43,5 +43,3 @@ while ans != "exit":
     ans = raw_input("Enter nothing to collect all waiting lines of data, \"graph\" to display graph, \"save\" to write data to file, or \"exit\" to exit.\n")
 
 s.close()
-
-    
