@@ -216,22 +216,19 @@ void changeMotor() {
             }
             printf("%u\t",motorDutyCycle);
 
-             // TODO: use the following code to modify the duty cycle based on current
             float x = 40000;
-            float y = 100000;
+            float currentGain = 100000;
 
             //COMMENTED OUT, increase torque based on distance, already did above
             // float currentDesired = updatedPos*motorDirection*-1/x;
             // if (currentDesired > motorCurrent) {
             //     motorDutyCycle += (int)(currentDesired*y);
             // } else {
-            motorDutyCycle += motorCurrent*y;
+            motorDutyCycle += motorCurrent*currentGain;
             // }
-            // printf("%u\r\n",motorDutyCycle);
             break;
         }
         case MODE_DAMP: {
-            // printf("%i\t\r\n",positionDiff-updatedPos);
             int dampingFactor = 100; 
             if(positionDiff-updatedPos>10){
                 motorDutyCycle = DUTY_CYCLE_MIN+(positionDiff-updatedPos)*dampingFactor;
@@ -257,7 +254,6 @@ void changeMotor() {
             {
                 texturePos*=-1;
             }
-            // printf("%i\r\n",updatedPos);
             if (texturePos < 100 || texturePos > (textureThreshold - 100))
             {
                 motorDutyCycle=0;
@@ -273,7 +269,6 @@ void changeMotor() {
             break;
         }
         case MODE_WALL: {
-            // printf("%i\r\n",updatedPos);
             if(updatedPos>1000){
                 motorDutyCycle = 40000;
                 motorDirection=-1;
