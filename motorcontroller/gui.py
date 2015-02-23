@@ -9,7 +9,10 @@ class JoystickUSB:
 
     def __init__(self):
         self.SET_MODE = 0
-        self.SET_TEXTURE = 1
+        self.SET_SPRING = 1
+        self.SET_DAMP = 2
+        self.SET_TEXTURE = 3
+        self.SET_WALL = 4
 
         self.MODE_NONE = 0
         self.MODE_SPRING = 1
@@ -31,11 +34,29 @@ class JoystickUSB:
         except usb.core.USBError:
             print "Could not send SET_MODE vendor request."
 
+    def set_spring(self, spring):
+        try:
+            self.dev.ctrl_transfer(0x40, self.SET_SPRING, int(spring), int(0))
+        except usb.core.USBError:
+            print "Could not send SET_SPRING vendor request."
+
+    def set_damping(self, damping):
+        try:
+            self.dev.ctrl_transfer(0x40, self.SET_DAMP, int(damping), int(0))
+        except usb.core.USBError:
+            print "Could not send SET_DAMPING vendor request."
+
     def set_texture(self, texture):
         try:
             self.dev.ctrl_transfer(0x40, self.SET_TEXTURE, int(texture), int(0))
         except usb.core.USBError:
             print "Could not send SET_TEXTURE vendor request."
+
+    def set_wall(self, wall):
+        try:
+            self.dev.ctrl_transfer(0x40, self.SET_WALL, int(wall), int(0))
+        except usb.core.USBError:
+            print "Could not send SET_WALL vendor request."
 
 qt_app = QApplication(sys.argv)
  
@@ -81,21 +102,23 @@ class JoystickGUI(QWidget):
         self.layout.addSpacing(20)
 
         # Add a slider for adjusting the spring parameter
-        self.springSliderLabel = QLabel("Spring Parameter")
+        self.springSliderLabel = QLabel("Spring Factor (2-10)")
         self.layout.addWidget(self.springSliderLabel)
         self.springSlider = QSlider(Qt.Horizontal, self)
-        self.springSlider.setMinimum(0)
-        self.springSlider.setMaximum(100)
+        self.springSlider.setMinimum(2)
+        self.springSlider.setMaximum(10)
+        self.springSlider.setSliderPosition(4)
         self.layout.addWidget(self.springSlider)
         self.layout.addSpacing(20)
 
-        # Add a slider for adjusting the damper parameter
-        self.damperSliderLabel = QLabel("Damper Parameter")
-        self.layout.addWidget(self.damperSliderLabel)
-        self.damperSlider = QSlider(Qt.Horizontal, self)
-        self.damperSlider.setMinimum(0)
-        self.damperSlider.setMaximum(100)
-        self.layout.addWidget(self.damperSlider)
+        # Add a slider for adjusting the damping parameter
+        self.dampingSliderLabel = QLabel("Damping Factor (20-500)")
+        self.layout.addWidget(self.dampingSliderLabel)
+        self.dampingSlider = QSlider(Qt.Horizontal, self)
+        self.dampingSlider.setMinimum(20)
+        self.dampingSlider.setMaximum(500)
+        self.dampingSlider.setSliderPosition(100)
+        self.layout.addWidget(self.dampingSlider)
         self.layout.addSpacing(20)
 
         # Add a slider for adjusting the texture spacing
@@ -104,15 +127,17 @@ class JoystickGUI(QWidget):
         self.textureSlider = QSlider(Qt.Horizontal, self)
         self.textureSlider.setMinimum(250)
         self.textureSlider.setMaximum(2000)
+        self.textureSlider.setSliderPosition(1000)
         self.layout.addWidget(self.textureSlider)
         self.layout.addSpacing(20)
 
         # Add a slider for adjusting the distance to the wall
-        self.wallSliderLabel = QLabel("Distance to Virtual Wall (100-10000)")
+        self.wallSliderLabel = QLabel("Distance to Virtual Wall (100-2200)")
         self.layout.addWidget(self.wallSliderLabel)
         self.wallSlider = QSlider(Qt.Horizontal, self)
         self.wallSlider.setMinimum(100)
-        self.wallSlider.setMaximum(10000)
+        self.wallSlider.setMaximum(2200)
+        self.wallSlider.setSliderPosition(1000)
         self.layout.addWidget(self.wallSlider)
         self.layout.addSpacing(20)
  
@@ -128,12 +153,16 @@ class JoystickGUI(QWidget):
         if clicked == "None":
             self.dev.set_mode(self.dev.MODE_NONE)
         elif clicked == "Spring":
+            self.dev.set_spring(self.springSlider.value())
             self.dev.set_mode(self.dev.MODE_SPRING)
         elif clicked == "Damper":
+            self.dev.set_damping(self.dampingSlider.value())
             self.dev.set_mode(self.dev.MODE_DAMP)
         elif clicked == "Texture":
+            self.dev.set_texture(self.textureSlider.value())
             self.dev.set_mode(self.dev.MODE_TEXTURE)
         elif clicked == "Wall":
+            self.dev.set_wall(self.wallSlider.value())
             self.dev.set_mode(self.dev.MODE_WALL)
 
     def run(self):

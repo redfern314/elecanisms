@@ -26,7 +26,10 @@
 
 
 #define SET_MODE                0   // Vendor request that sets the feedback mode
-#define SET_TEXTURE             1   // Vendor request that sets the texture frequency
+#define SET_SPRING_VAR          1   // Vendor request that sets the spring constant
+#define SET_DAMP_VAR            2   // Vendor request that sets the daming constant
+#define SET_TEXTURE_VAR         3   // Vendor request that sets the texture frequency
+#define SET_WALL_VAR            4   // Vendor request that sets the wall threshold
 
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
@@ -45,6 +48,9 @@ typedef enum {
 // Variables that can be set via USB
 mode_t mode = MODE_NONE;
 int textureThreshold = 1000;
+int springFactor = 4;
+int dampingFactor = 100; 
+int wallThreshold = 1000;
 
 // Position tracking variables
 int updatedPos = 0;     // keeps track of the latest updated value of the MR sensor reading
@@ -206,15 +212,15 @@ void changeMotor() {
         }
         case MODE_SPRING: {
             if (updatedPos < -100) {
-                motorDutyCycle = DUTY_CYCLE_MIN+updatedPos*-4;
+                motorDutyCycle = DUTY_CYCLE_MIN+updatedPos*-springFactor;
                 motorDirection = 1;
             } else if (updatedPos > 100) {
-                motorDutyCycle = DUTY_CYCLE_MIN+updatedPos*4;
+                motorDutyCycle = DUTY_CYCLE_MIN+updatedPos*springFactor;
                 motorDirection = -1;
             } else {
                 motorDutyCycle = 0;
             }
-            printf("%u\t",motorDutyCycle);
+            // printf("%u\t",motorDutyCycle);
 
             float x = 40000;
             float currentGain = 100000;
@@ -229,7 +235,6 @@ void changeMotor() {
             break;
         }
         case MODE_DAMP: {
-            int dampingFactor = 100; 
             if(positionDiff-updatedPos>10){
                 motorDutyCycle = DUTY_CYCLE_MIN+(positionDiff-updatedPos)*dampingFactor;
                 motorDirection=1;    
@@ -269,11 +274,11 @@ void changeMotor() {
             break;
         }
         case MODE_WALL: {
-            if(updatedPos>1000){
+            if(updatedPos>wallThreshold){
                 motorDutyCycle = 40000;
                 motorDirection=-1;
             }
-            else if (updatedPos<-1000){
+            else if (updatedPos<-wallThreshold){
                 motorDutyCycle = 40000;
                 motorDirection=1;
             }
@@ -303,8 +308,26 @@ void VendorRequests(void) {
             BD[EP0IN].bytecount = 0;    // set EP0 IN byte count to 0 
             BD[EP0IN].status = 0xC8;    // send packet as DATA1, set UOWN bit
             break;
-        case SET_TEXTURE:
+        case SET_SPRING_VAR:
+            springFactor = (int)USB_setup.wValue.w;
+            // disregard USB_setup.wIndex.w, we're only sending one value
+            BD[EP0IN].bytecount = 0;    // set EP0 IN byte count to 0 
+            BD[EP0IN].status = 0xC8;    // send packet as DATA1, set UOWN bit
+            break;
+        case SET_DAMP_VAR:
+            dampingFactor = (int)USB_setup.wValue.w;
+            // disregard USB_setup.wIndex.w, we're only sending one value
+            BD[EP0IN].bytecount = 0;    // set EP0 IN byte count to 0 
+            BD[EP0IN].status = 0xC8;    // send packet as DATA1, set UOWN bit
+            break;
+        case SET_TEXTURE_VAR:
             textureThreshold = (int)USB_setup.wValue.w;
+            // disregard USB_setup.wIndex.w, we're only sending one value
+            BD[EP0IN].bytecount = 0;    // set EP0 IN byte count to 0 
+            BD[EP0IN].status = 0xC8;    // send packet as DATA1, set UOWN bit
+            break;
+        case SET_WALL_VAR:
+            wallThreshold = (int)USB_setup.wValue.w;
             // disregard USB_setup.wIndex.w, we're only sending one value
             BD[EP0IN].bytecount = 0;    // set EP0 IN byte count to 0 
             BD[EP0IN].status = 0xC8;    // send packet as DATA1, set UOWN bit
